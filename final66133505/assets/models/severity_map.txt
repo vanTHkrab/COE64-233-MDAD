@@ -1,0 +1,7 @@
+Normal:Low
+Ballot Stuffing:High
+Voter Intimidation:High
+Unauthorized Person:Medium
+Suspicious Activity:Medium
+Violence:High
+Damaged Equipment:Medium

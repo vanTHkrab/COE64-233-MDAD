@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "143474015125",
+    "project_id": "civil-tempo-414911",
+    "storage_bucket": "civil-tempo-414911.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:143474015125:android:10d4bec569ff1cf96e549c",
+        "android_client_info": {
+          "package_name": "com.phd.exam.final66133505"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "143474015125-5k36543qo4m4vfui3ca5vu17pu9g0f4b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7zwofWCCd---dG9LOL1QKDkvnrxMBCJ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "143474015125-5k36543qo4m4vfui3ca5vu17pu9g0f4b.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
