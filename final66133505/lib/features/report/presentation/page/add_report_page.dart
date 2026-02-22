@@ -34,7 +34,6 @@ class _AddReportPageState extends State<AddReportPage> {
   bool _isSaving = false;
   bool _isLoading = true;
 
-  // Image picker
   final ImagePicker _picker = ImagePicker();
   XFile? _pickedImage;
   bool _isAnalyzing = false;
@@ -70,7 +69,6 @@ class _AddReportPageState extends State<AddReportPage> {
     }
   }
 
-  // ── Add-new dialogs ─────────────────────────────────────────────────
 
   Future<void> _addNewStation() async {
     final idCtrl = TextEditingController();
@@ -163,7 +161,6 @@ class _AddReportPageState extends State<AddReportPage> {
         );
         if (mounted) {
           setState(() {
-            // Remove any stale entry with the same ID before appending
             _stations = [
               ..._stations.where((s) => s.stationId != newStation.stationId),
               newStation,
@@ -177,10 +174,6 @@ class _AddReportPageState extends State<AddReportPage> {
         _showErrorDialog('Failed to add station', e.toString());
       }
     }
-    // Do NOT call dispose() here — the dialog close animation is still
-    // running on the next frame and the TextFormField widgets still hold
-    // references to these controllers. Local controllers created inside
-    // an async method are short-lived and Dart GC handles them safely.
   }
 
   Future<void> _addNewType() async {
@@ -263,7 +256,6 @@ class _AddReportPageState extends State<AddReportPage> {
         _showErrorDialog('Failed to add violation type', e.toString());
       }
     }
-    // Do NOT dispose — same reason as _addNewStation above.
   }
 
   void _showErrorDialog(String title, String message) {
@@ -293,14 +285,12 @@ class _AddReportPageState extends State<AddReportPage> {
         imageQuality: 85,
       );
       if (image != null) {
-        // Copy to persistent temp dir so the path survives process restarts.
         final persistentPath = await ImageStorage.copyToTemp(image.path);
         setState(() {
           _pickedImage = XFile(persistentPath);
           _aiPrediction = null;
           _aiConfidence = 0.0;
         });
-        // Auto-predict immediately after picking
         _analyzeImage();
       }
     } catch (e) {

@@ -359,6 +359,18 @@ class LocalDataSource {
     _log.fine('upsertStations → ${entities.length} rows');
   }
 
+  /// [3.5] COUNT(*) of non-deleted incident reports for a given station.
+  Future<int> countReportsByStation(int stationId) async {
+    final db = await _db;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) AS cnt '
+      'FROM ${DbConstants.tableIncidentReport} '
+      'WHERE station_id = ? AND is_deleted = 0',
+      [stationId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Violation Type
   // ─────────────────────────────────────────────────────────────────────────

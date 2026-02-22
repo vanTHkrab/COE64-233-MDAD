@@ -22,6 +22,7 @@ class RemoteDataSource {
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Fetches all polling stations from Firestore.
+  /// Records fetched from remote are always considered synced.
   Future<List<PollingStationEntity>> fetchAllStations() async {
     final snap = await _firestore
         .collection(DbConstants.colPollingStations)
@@ -30,11 +31,15 @@ class RemoteDataSource {
     return snap.docs.map((doc) {
       final data = doc.data();
       data['station_id'] = int.tryParse(doc.id) ?? data['station_id'];
+      // Records that exist in Firestore are by definition synced
+      data['is_synced'] = 1;
       return PollingStationEntity.fromMap(data);
     }).toList();
   }
 
   /// Pushes a list of polling stations to Firestore (seed / initial push).
+  /// `is_synced` and `is_deleted` are local-only bookkeeping fields — stripped
+  /// before sending to Firestore.
   Future<void> pushStations(List<PollingStationEntity> entities) async {
     final batches = _chunkList(entities, DbConstants.firestoreBatchLimit);
     for (final chunk in batches) {
@@ -43,7 +48,11 @@ class RemoteDataSource {
         final ref = _firestore
             .collection(DbConstants.colPollingStations)
             .doc('${e.stationId}');
-        batch.set(ref, e.toMap(), SetOptions(merge: true));
+        // Strip local-only fields before writing to Firestore
+        final data = e.toMap()
+          ..remove('is_synced')
+          ..remove('is_deleted');
+        batch.set(ref, data, SetOptions(merge: true));
       }
       await batch.commit();
     }

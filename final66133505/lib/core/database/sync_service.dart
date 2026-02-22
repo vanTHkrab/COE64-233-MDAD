@@ -147,6 +147,7 @@ class SyncService {
     try {
       final remote = await remoteDataSource.fetchAllStations();
       if (remote.isNotEmpty) {
+        // fetchAllStations already sets isSynced=true; upsert directly.
         await localDataSource.upsertStations(remote);
         _log.info('Pulled ${remote.length} polling stations');
       }

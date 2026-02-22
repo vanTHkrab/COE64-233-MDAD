@@ -31,8 +31,8 @@ class ClassificationResult {
 class TFLiteClassifier {
   static final _log = Logger('TFLiteClassifier');
 
-  static const _modelPath = 'assets/models/incident_classifier.tflite';
-  static const _labelsPath = 'assets/models/incident_labels.txt';
+  static const _modelPath = 'assets/models/model_unquant.tflite';
+  static const _labelsPath = 'assets/models/labels.txt';
   static const _severityMapPath = 'assets/models/severity_map.txt';
 
   static const int _inputSize = 224; // expected width & height

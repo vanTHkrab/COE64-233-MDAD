@@ -1,7 +1,5 @@
-Normal:Low
-Ballot Stuffing:High
-Voter Intimidation:High
-Unauthorized Person:Medium
-Suspicious Activity:Medium
-Violence:High
-Damaged Equipment:Medium
+Buying Votes:High
+Transportation:High
+Overtime Campaign:Medium
+Vandalism:Low
+Bias Official:High

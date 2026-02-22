@@ -25,7 +25,6 @@ class PollingStationCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
           child: Row(
             children: [
-              // ── Icon ───────────────────────────────────────────────
               Container(
                 width: 40,
                 height: 40,
@@ -38,7 +37,6 @@ class PollingStationCard extends StatelessWidget {
 
               const SizedBox(width: 12),
 
-              // ── Content ─────────────────────────────────────────────
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

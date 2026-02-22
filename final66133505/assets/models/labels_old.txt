@@ -1,0 +1,5 @@
+0 bias_official
+1 buying_votes
+2 overtime_campaign
+3 vandalism
+4 transportation

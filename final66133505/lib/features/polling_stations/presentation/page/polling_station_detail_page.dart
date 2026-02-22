@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:logging/logging.dart';
@@ -7,8 +5,6 @@ import 'package:intl/intl.dart';
 
 import 'package:final66133505/core/database/database.dart';
 import 'package:final66133505/core/di/injection.dart';
-import 'package:final66133505/core/theme/app_theme.dart';
-import '../../domain/entities/polling_station.dart';
 import 'edit_polling_station_page.dart';
 
 
@@ -27,6 +23,7 @@ class _PollingStationDetailPageState extends State<PollingStationDetailPage> {
   final PollingStationRepository _stationRepo = sl<PollingStationRepository>();
 
   PollingStationEntity? _station;
+  int _incidentCount = 0;
   bool _isLoading = true;
 
   @override
@@ -39,7 +36,13 @@ class _PollingStationDetailPageState extends State<PollingStationDetailPage> {
     setState(() => _isLoading = true);
     try {
       final station = await _stationRepo.getById(widget.stationId);
-      if (mounted) setState(() => _station = station);
+      final count = station != null
+          ? await _stationRepo.countReportsByStation(station.stationId)
+          : 0;
+      if (mounted) setState(() {
+        _station = station;
+        _incidentCount = count;
+      });
     } catch (e, st) {
       _log.severe('Failed to load polling station', e, st);
       if (mounted) {
@@ -71,12 +74,14 @@ class _PollingStationDetailPageState extends State<PollingStationDetailPage> {
           IconButton(
             onPressed: () async {
               final updated = await Navigator.of(context).push<bool>(
-                // to route edit page with stationId param
                 MaterialPageRoute(
                   builder: (context) => EditPollingStationPage(stationId: widget.stationId),
                 ),
               );
-              if (updated == true && mounted) _load();
+              if (updated == true && mounted) {
+                await _load();
+                Navigator.of(context).pop(true);
+              }
             },
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit polling station',
@@ -120,7 +125,36 @@ class _PollingStationDetailPageState extends State<PollingStationDetailPage> {
             style: GoogleFonts.prompt(fontSize: 12, color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
+          Text(
+            'Incidents Reported: $_incidentCount',
+            style: GoogleFonts.prompt(fontSize: 14, fontWeight: FontWeight.w500, color: _incidentCount > 0 ? cs.onErrorContainer : cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
           Text('Synced: ${_station!.isSynced ? 'Yes' : 'No'}', style: GoogleFonts.prompt(fontSize: 12, color: cs.onSurfaceVariant)),
+          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop(true);
+            },
+            child: const Text('Back to List'),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => EditPollingStationPage(stationId: widget.stationId),
+                ),
+              ).then((updated) async {
+                if (updated == true && mounted) {
+                  await _load();
+                  Navigator.of(context).pop(true);
+                }
+              });
+            },
+            child: const Text('Edit Polling Station'),
+          ),
         ],
       ),
     );

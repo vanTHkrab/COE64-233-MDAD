@@ -64,18 +64,15 @@ class _ReportPageState extends State<ReportPage> {
     super.dispose();
   }
 
-  // ── 5.2 + 5.3 + 5.4 + 5.7: combined in-memory filter ───────────────
   List<IncidentReport> get _filteredReports {
     final q = _searchQuery.toLowerCase();
     return _reports.where((r) {
-      // 5.2 reporter name partial match, 5.3 description partial match
       final matchesText = q.isEmpty ||
           r.reporterName.toLowerCase().contains(q) ||
           r.description.toLowerCase().contains(q);
-      // 5.4 + 5.5: severity filter (severity already joined from violation_type)
       final matchesSeverity =
           _selectedSeverity == null || r.severity == _selectedSeverity;
-      return matchesText && matchesSeverity; // 5.7 combined
+      return matchesText && matchesSeverity;
     }).toList();
   }
 

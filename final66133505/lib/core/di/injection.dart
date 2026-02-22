@@ -175,6 +175,10 @@ class PollingStationRepository {
     return created;
   }
 
+  /// [3.5] SQL COUNT of incident reports for this station.
+  Future<int> countReportsByStation(int stationId) =>
+      localDataSource.countReportsByStation(stationId);
+
   Future<void> update(PollingStationEntity entity) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final updated = entity.copyWith(
@@ -187,6 +191,8 @@ class PollingStationRepository {
     // Push to Firestore immediately (best-effort)
     try {
       await remoteDataSource.pushStations([updated]);
+      // Mark synced in local DB after successful push
+      await localDataSource.upsertStation(updated.copyWith(isSynced: true));
       _log.info('Station id=${entity.stationId} synced to Firestore');
     } catch (e) {
       _log.warning(

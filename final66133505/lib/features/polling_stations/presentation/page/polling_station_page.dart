@@ -96,14 +96,20 @@ class _PollingStationPageState extends State<PollingStationPage> {
     final cs = theme.colorScheme;
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator(color: cs.primary))
-            : _error != null
-              ? Center(child: Text(_error!, style: theme.textTheme.bodyLarge))
-              : _buildBody(),
+      body: Column(
+        children: [
+          _buildSyncBanner(cs),
 
+          Expanded(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: cs.primary))
+                : _error != null
+                    ? Center(
+                        child: Text(_error!, style: theme.textTheme.bodyLarge),
+                      )
+                    : _buildBody(),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -111,6 +117,91 @@ class _PollingStationPageState extends State<PollingStationPage> {
         },
         tooltip: 'Add Polling Station',
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildSyncBanner(ColorScheme cs) {
+    if (_syncStatus.state == SyncState.idle && !_syncStatus.hasPending) {
+      return const SizedBox.shrink();
+    }
+
+    final (Color bg, Color fg, IconData icon, String text) =
+        switch (_syncStatus.state) {
+      SyncState.syncing => (
+        const Color(0xFFE3F2FD),
+        const Color(0xFF0D47A1),
+        Icons.sync_rounded,
+        'Syncing with server…',
+      ),
+      SyncState.synced => (
+        AppTheme.syncedColor.withOpacity(0.1),
+        AppTheme.syncedColor,
+        Icons.cloud_done_rounded,
+        'All stations synced ✓',
+      ),
+      SyncState.offline => (
+        AppTheme.offlineColor.withOpacity(0.1),
+        AppTheme.offlineColor,
+        Icons.cloud_off_rounded,
+        'Offline — changes saved locally',
+      ),
+      SyncState.error => (
+        AppTheme.severityHigh.withOpacity(0.1),
+        AppTheme.severityHigh,
+        Icons.sync_problem_rounded,
+        'Sync failed — tap to retry',
+      ),
+      SyncState.idle when _syncStatus.hasPending => (
+        AppTheme.pendingColor.withOpacity(0.1),
+        AppTheme.pendingColor,
+        Icons.cloud_upload_outlined,
+        '${_syncStatus.pendingCount} station${_syncStatus.pendingCount > 1 ? "s" : ""} pending sync',
+      ),
+      _ => (Colors.transparent, Colors.transparent, Icons.sync, ''),
+    };
+
+    if (text.isEmpty) return const SizedBox.shrink();
+
+    return Material(
+      color: bg,
+      child: InkWell(
+        onTap: () => sl<AutoSyncManager>().requestSync(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Row(
+            children: [
+              if (_syncStatus.isSyncing)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: fg),
+                )
+              else
+                Icon(icon, size: 18, color: fg),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  text,
+                  style: GoogleFonts.prompt(
+                    color: fg,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              if (_syncStatus.hasPending && !_syncStatus.isSyncing)
+                Text(
+                  'Sync now',
+                  style: GoogleFonts.prompt(
+                    color: fg,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

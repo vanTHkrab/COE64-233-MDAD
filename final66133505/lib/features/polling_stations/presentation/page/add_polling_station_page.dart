@@ -74,9 +74,8 @@ class _AddPollingStationPageState extends State<AddPollingStationPage> {
     setState(() => _isSaving = true);
 
     try {
-      // Simulate saving to database
       await Future.delayed(const Duration(seconds: 2));
-      Navigator.of(context).pop(); // Go back after saving
+      Navigator.of(context).pop();
     } catch (e, st) {
       _log.severe('Failed to save polling station', e, st);
       ScaffoldMessenger.of(context).showSnackBar(
