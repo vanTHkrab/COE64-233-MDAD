@@ -20,7 +20,7 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   static final _log = Logger('MainLayout');
 
-  static const _titles = ['Election Monitor', 'AI Scanner', 'Reports'];
+  static const _titles = ['Election Monitor', 'Reports', 'Polling Stations'];
 
   static const _navItems = [
     NavigationDestination(
@@ -29,14 +29,14 @@ class _MainLayoutState extends State<MainLayout> {
       label: 'Dashboard',
     ),
     NavigationDestination(
-      icon: Icon(Icons.document_scanner_outlined),
-      selectedIcon: Icon(Icons.document_scanner_rounded),
-      label: 'AI Scanner',
-    ),
-    NavigationDestination(
       icon: Icon(Icons.assignment_outlined),
       selectedIcon: Icon(Icons.assignment_rounded),
       label: 'Reports',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.location_on_outlined),
+      selectedIcon: Icon(Icons.location_on_rounded),
+      label: 'Polling Stations',
     ),
   ];
 

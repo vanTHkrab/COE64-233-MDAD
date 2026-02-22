@@ -22,10 +22,13 @@ class _ReportPageState extends State<ReportPage> {
   final IncidentReportRepository _reportRepo = sl<IncidentReportRepository>();
   final PollingStationRepository _stationRepo = sl<PollingStationRepository>();
   final ViolationTypeRepository _typeRepo = sl<ViolationTypeRepository>();
+  final _searchController = TextEditingController();
 
   static final _log = Logger('ReportPage');
 
   List<IncidentReport> _reports = [];
+  String _searchQuery = '';
+  String? _selectedSeverity; // null = show all
   bool _isLoading = true;
   String? _error;
   SyncStatus _syncStatus = const SyncStatus();
@@ -36,6 +39,11 @@ class _ReportPageState extends State<ReportPage> {
   void initState() {
     super.initState();
     _loadReports();
+
+    // Rebuild filtered list whenever search text changes.
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.trim());
+    });
 
     // Auto-refresh when background sync completes.
     final syncManager = sl<AutoSyncManager>();
@@ -52,7 +60,23 @@ class _ReportPageState extends State<ReportPage> {
   @override
   void dispose() {
     _syncSub?.cancel();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  // ── 5.2 + 5.3 + 5.4 + 5.7: combined in-memory filter ───────────────
+  List<IncidentReport> get _filteredReports {
+    final q = _searchQuery.toLowerCase();
+    return _reports.where((r) {
+      // 5.2 reporter name partial match, 5.3 description partial match
+      final matchesText = q.isEmpty ||
+          r.reporterName.toLowerCase().contains(q) ||
+          r.description.toLowerCase().contains(q);
+      // 5.4 + 5.5: severity filter (severity already joined from violation_type)
+      final matchesSeverity =
+          _selectedSeverity == null || r.severity == _selectedSeverity;
+      return matchesText && matchesSeverity; // 5.7 combined
+    }).toList();
   }
 
   Future<void> _loadReports() async {
@@ -120,7 +144,8 @@ class _ReportPageState extends State<ReportPage> {
           // ── Sync status banner ──────────────────────────────────────
           _buildSyncBanner(colorScheme),
 
-          // ── Body ────────────────────────────────────────────────────
+          _searchBar(),
+
           Expanded(child: _buildBody(theme, colorScheme)),
         ],
       ),
@@ -138,8 +163,66 @@ class _ReportPageState extends State<ReportPage> {
     );
   }
 
+  // ── 5.1: search bar + 5.4 severity dropdown ─────────────────────────
+  Widget _searchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Column(
+        children: [
+          // 5.1 + 5.2 + 5.3: text search field
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search by reporter or description…',
+              hintStyle: GoogleFonts.prompt(fontSize: 13),
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () {
+                        _searchController.clear();
+                        // listener will call setState via addListener
+                      },
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 5.4: severity dropdown filter
+          DropdownButtonFormField<String?>(
+            value: _selectedSeverity,
+            decoration: InputDecoration(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              prefixIcon: const Icon(Icons.filter_list_rounded),
+              labelText: 'Severity',
+              labelStyle: GoogleFonts.prompt(fontSize: 13),
+            ),
+            style: GoogleFonts.prompt(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            items: [
+              DropdownMenuItem<String?>(
+                value: null,
+                child: Text('All severities', style: GoogleFonts.prompt()),
+              ),
+              ...['High', 'Medium', 'Low'].map(
+                (s) => DropdownMenuItem<String?>(
+                  value: s,
+                  child: Text(s, style: GoogleFonts.prompt()),
+                ),
+              ),
+            ],
+            onChanged: (val) => setState(() => _selectedSeverity = val),
+          ),
+        ],
+      ),
+    );
+  }
+  
+
   Widget _buildSyncBanner(ColorScheme colorScheme) {
-    // Only show when there's something interesting to report.
     if (_syncStatus.state == SyncState.idle && !_syncStatus.hasPending) {
       return const SizedBox.shrink();
     }
@@ -157,25 +240,25 @@ class _ReportPageState extends State<ReportPage> {
         'Syncing with server…',
       ),
       SyncState.synced => (
-        AppTheme.syncedColor.withOpacity(0.1),
+        AppTheme.syncedColor,
         AppTheme.syncedColor,
         Icons.cloud_done_rounded,
         'All reports synced ✓',
       ),
       SyncState.offline => (
-        AppTheme.offlineColor.withOpacity(0.1),
+        AppTheme.offlineColor,
         AppTheme.offlineColor,
         Icons.cloud_off_rounded,
         'Offline — changes saved locally',
       ),
       SyncState.error => (
-        AppTheme.severityHigh.withOpacity(0.1),
+        AppTheme.severityHigh,
         AppTheme.severityHigh,
         Icons.sync_problem_rounded,
         'Sync failed — tap to retry',
       ),
       SyncState.idle when _syncStatus.hasPending => (
-        AppTheme.pendingColor.withOpacity(0.1),
+        AppTheme.pendingColor,
         AppTheme.pendingColor,
         Icons.cloud_upload_outlined,
         '${_syncStatus.pendingCount} report${_syncStatus.pendingCount > 1 ? "s" : ""} pending sync',
@@ -270,6 +353,8 @@ class _ReportPageState extends State<ReportPage> {
       );
     }
 
+    final filtered = _filteredReports;
+
     if (_reports.isEmpty) {
       return Center(
         child: Column(
@@ -278,7 +363,7 @@ class _ReportPageState extends State<ReportPage> {
             Icon(
               Icons.how_to_vote_outlined,
               size: 72,
-              color: colorScheme.primary.withOpacity(0.2),
+              color: colorScheme.primary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -294,7 +379,7 @@ class _ReportPageState extends State<ReportPage> {
               'Tap + to create your first report',
               style: GoogleFonts.prompt(
                 fontSize: 13,
-                color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 20),
@@ -308,13 +393,54 @@ class _ReportPageState extends State<ReportPage> {
       );
     }
 
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 72,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No records found',
+              style: GoogleFonts.prompt(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try adjusting your search or filter',
+              style: GoogleFonts.prompt(
+                fontSize: 13,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: () {
+                _searchController.clear();
+                setState(() => _selectedSeverity = null);
+              },
+              icon: const Icon(Icons.clear_all_rounded),
+              label: Text('Clear filters', style: GoogleFonts.prompt()),
+            ),
+          ],
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: _loadReports,
       child: ListView.builder(
         padding: const EdgeInsets.only(top: 8, bottom: 88, left: 4, right: 4),
-        itemCount: _reports.length,
+        itemCount: filtered.length,
         itemBuilder: (context, index) {
-          final report = _reports[index];
+          final report = filtered[index];
           return IncidentReportCard(
             report: report,
             onTap: () async {

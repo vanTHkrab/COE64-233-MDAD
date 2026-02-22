@@ -104,6 +104,10 @@ class PollingStationRepository {
     return localDataSource.getStationById(id);
   }
 
+  Future<List<PollingStationEntity>> getTopStationByReportCount(int limit) async {
+    return localDataSource.getTopStationByReportCount(limit);
+  }
+
   /// Creates a new polling station locally AND syncs it to Firestore.
   /// If [stationId] is provided the record will use that exact ID.
   Future<PollingStationEntity> create({
@@ -169,6 +173,26 @@ class PollingStationRepository {
       );
     }
     return created;
+  }
+
+  Future<void> update(PollingStationEntity entity) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final updated = entity.copyWith(
+      updatedAt: now,
+      isSynced: false,
+    );
+    await localDataSource.upsertStations([updated]);
+    _log.info('Updated station id=${entity.stationId}');
+
+    // Push to Firestore immediately (best-effort)
+    try {
+      await remoteDataSource.pushStations([updated]);
+      _log.info('Station id=${entity.stationId} synced to Firestore');
+    } catch (e) {
+      _log.warning(
+        'Station id=${entity.stationId} Firestore sync failed (will retry): $e',
+      );
+    }
   }
 
   /// Pulls all polling stations from Firestore → SQLite.

@@ -49,6 +49,26 @@ class PollingStationEntity {
     'is_deleted': isDeleted ? 1 : 0,
     'is_synced': isSynced ? 1 : 0,
   };
+
+  PollingStationEntity copyWith({
+    int? stationId,
+    String? stationName,
+    String? zone,
+    String? province,
+    int? updatedAt,
+    bool? isDeleted,
+    bool? isSynced,
+  }) {
+    return PollingStationEntity(
+      stationId: stationId ?? this.stationId,
+      stationName: stationName ?? this.stationName,
+      zone: zone ?? this.zone,
+      province: province ?? this.province,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      isSynced: isSynced ?? this.isSynced,
+    );
+  }
 }
 
 /// Represents a row in `violation_type`.
@@ -284,6 +304,22 @@ class LocalDataSource {
       limit: 1,
     );
     return rows.isEmpty ? null : PollingStationEntity.fromMap(rows.first);
+  }
+
+  Future<List<PollingStationEntity>> getTopStationByReportCount(int limit) async {
+    final db = await _db;
+    final result = await db.rawQuery('''
+      SELECT ps.*, COUNT(ir.report_id) AS report_count
+      FROM ${DbConstants.tablePollingStation} ps
+      LEFT JOIN ${DbConstants.tableIncidentReport} ir
+        ON ps.station_id = ir.station_id AND ir.is_deleted = 0
+      WHERE ps.is_deleted = 0
+      GROUP BY ps.station_id
+      ORDER BY report_count DESC
+      LIMIT ?
+    ''', [limit]);
+    if (result.isEmpty) return [];
+    return result.map(PollingStationEntity.fromMap).toList();
   }
 
   Future<void> upsertStation(PollingStationEntity entity) async {

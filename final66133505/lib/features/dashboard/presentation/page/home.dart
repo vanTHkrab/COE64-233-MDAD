@@ -21,6 +21,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   int _totalReports = 0;
   int _unsyncedCount = 0;
   int _totalStations = 0;
+  
+  List<PollingStationEntity> _topStations = [];
   List<IncidentReportEntity> _allReports = [];
   List<IncidentReportEntity> _recentReports = [];
   List<ViolationTypeEntity> _violationTypes = [];
@@ -68,19 +70,21 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   Future<void> _loadDashboard() async {
     setState(() => _isLoading = true);
     try {
-      final reports = await sl<IncidentReportRepository>().getAll();
+      final report = await sl<IncidentReportRepository>().getAll();
+      final topstation = await sl<PollingStationRepository>().getTopStationByReportCount(3);
       final unsynced = await sl<IncidentReportRepository>().getUnsyncedCount();
       final stations = await sl<PollingStationRepository>().getAll();
       final types = await sl<ViolationTypeRepository>().getAll();
 
       setState(() {
-        _allReports = reports;
-        _totalReports = reports.length;
+        _topStations = topstation;
+        _allReports = report;
+        _totalReports = report.length;
         _unsyncedCount = unsynced;
         _totalStations = stations.length;
         _stations = stations;
         _violationTypes = types;
-        _recentReports = reports.take(5).toList();
+        _recentReports = report.take(5).toList();
         _isLoading = false;
       });
     } catch (_) {
@@ -198,7 +202,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSectionTitle(theme, 'Recent Reports'),
+              _buildSectionTitle(theme, 'The top 3 polling stations\nwith the most complaints.'),
               TextButton.icon(
                 onPressed: () => context.go('/reports'),
                 icon: const Icon(Icons.arrow_forward_rounded, size: 18),
@@ -207,7 +211,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
             ],
           ),
           const SizedBox(height: 8),
-          _buildRecentReports(theme, cs),
+          // _buildRecentReports(theme, cs),
+          _buildTopStations(theme, cs),
         ],
       ),
     );
@@ -338,6 +343,44 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         ),
       ],
     );
+  }
+
+  Widget _buildTopStations(ThemeData theme, ColorScheme cs) {
+    if (_topStations.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            children: [
+              Icon(
+                Icons.inbox_outlined,
+                size: 48,
+                color: cs.onSurfaceVariant.withOpacity(0.3),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'No data yet',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Reports will be analyzed here',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return _TopStationTile(
+      stations: _topStations,
+      // onTap: (stationId) => context.push('/stations/detail/$stationId'),
+    );  
   }
 
   // ── Recent Reports ──────────────────────────────────────────────────────
@@ -905,6 +948,57 @@ class _TypeBarChart extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════════════════════
 // Recent Report Tile
 // ═════════════════════════════════════════════════════════════════════════════
+
+class _TopStationTile extends StatelessWidget {
+  final List<PollingStationEntity> stations;
+  // final Function(int stationId) onTap;
+
+  const _TopStationTile({
+    required this.stations,
+    // required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: stations.map((s) {
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: InkWell(
+            // onTap: () => onTap(s.stationId),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Icon(Icons.location_on_rounded, color: theme.colorScheme.primary),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      s.stationName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.prompt(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
 
 class _RecentReportTile extends StatelessWidget {
   final IncidentReportEntity report;
